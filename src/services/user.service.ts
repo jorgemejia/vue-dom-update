@@ -8,11 +8,25 @@ class UserService {
       .then(response => response.data);
   }
 
-  public async updateUsuarios(user: UserInterface) {
+  public async createUsuarios(user: UserInterface) {
     return await axios
-        .patch<UserInterface[]>(`http://localhost:3001/users/${user.id}`, user)
+        .post<UserInterface>(`http://localhost:3001/users`, user)
         .then(response => response.data);
   }
+
+  public async updateUsuarios(user: UserInterface) {
+    return await axios
+        .patch<UserInterface>(`http://localhost:3001/users/${user.id}`, user)
+        .then(response => response.data);
+  }
+
+  public async deleteUsuarios(user: UserInterface) {
+    return await axios
+        .delete(`http://localhost:3001/users/${user.id}`)
+        .then(response => response.data);
+  }
+
+
 
 }
 

@@ -25,11 +25,27 @@
             <td>
               <v-tooltip bottom>
                 <template v-slot:activator="{ on }">
-                  <v-btn color="primary" icon @click="dialog = true" v-on="on">
-                    <v-icon>edit</v-icon>
+                  <v-btn color="primary" icon @click="userEdit" v-on="on">
+                    <v-icon>mdi-checkbox-marked-circle</v-icon>
+                  </v-btn>
+                </template>
+                <span>Nuevo</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                  <v-btn color="primary" icon @click="userEdit(item)" v-on="on">
+                    <v-icon>mdi-wrench</v-icon>
                   </v-btn>
                 </template>
                 <span>Editar</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                  <v-btn color="primary" icon @click="userDelete(item)" v-on="on">
+                    <v-icon>mdi-cancel</v-icon>
+                  </v-btn>
+                </template>
+                <span>Delete</span>
               </v-tooltip>
             </td>
           </tr>
@@ -44,16 +60,6 @@
             persistent
             max-width="600px"
         >
-          <template v-slot:activator="{ on, attrs }">
-            <v-btn
-                color="primary"
-                dark
-                v-bind="attrs"
-                v-on="on"
-            >
-              Open Dialog
-            </v-btn>
-          </template>
           <v-card>
             <v-card-title>
               <span class="headline">User Profile</span>
@@ -76,6 +82,7 @@
                     <v-text-field
                         label="Legal middle name"
                         hint="example of helper text only on focus"
+                        v-model="userSelected.lastnameMother"
                     ></v-text-field>
                   </v-col>
                   <v-col
@@ -87,6 +94,7 @@
                         label="Legal last name*"
                         hint="example of persistent helper text"
                         persistent-hint
+                        v-model="userSelected.lastnameFather"
                         required
                     ></v-text-field>
                   </v-col>
@@ -94,6 +102,7 @@
                     <v-text-field
                         label="Email*"
                         required
+                        v-model="userSelected.email"
                     ></v-text-field>
                   </v-col>
                 </v-row>
@@ -105,7 +114,7 @@
               <v-btn
                   color="blue darken-1"
                   text
-                  @click="dialog = false"
+                  @click="closeModal"
               >
                 Close
               </v-btn>
@@ -114,7 +123,7 @@
                   text
                   @click="saveUSer"
               >
-                Save
+                {{ userSelected.id ? 'Update' : 'Save' }}
               </v-btn>
             </v-card-actions>
           </v-card>
@@ -133,9 +142,9 @@ import { userService } from "@/services/user.service";
 import { UserInterface } from "@/types/User.interface";
 
 @Component
-export default class App extends Vue {
+export default class HelloWorld extends Vue {
   public name: string = "HelloWorld";
-  public users: any = [];
+  public users: UserInterface[] = [];
   public dialog: boolean = false;
   public userSelected: UserInterface = {
     id: 0,
@@ -143,7 +152,7 @@ export default class App extends Vue {
     lastnameFather: '',
     lastnameMother: '',
     email: '',
-    password: ''
+    password: '123456'
   };
 
   public headers: any = [
@@ -151,11 +160,12 @@ export default class App extends Vue {
     { text: "Apellido Paterno", value: "lastnameFather" },
     { text: "Apellido Materno", value: "lastnameMother" },
     { text: "Email", value: "email" },
-    { text: "Acciones", value: "" },
+    { text: "Acciones", value: "" }
   ];
 
   async mounted() {
-    this.users = await userService.getUsuarios();
+    const response = await userService.getUsuarios();
+    this.users = response;
     console.log(this.users);
   }
 
@@ -163,16 +173,52 @@ export default class App extends Vue {
     this.dialog = true;
   }
 
-  public async userEdit(user: UserInterface) {
-    console.log(user);
-    this.userSelected = user;
-
-    const updateUser = await userService.updateUsuarios(user);
-    console.log('Update from server ', updateUser);
+  public async userEdit(item: UserInterface) {
+    this.dialog = true;
+    this.userSelected = item;
   }
 
-  public saveUSer(){
-    console.log('User to save ', this.userSelected);
+  public async userDelete(user: UserInterface) {
+    const response =  await userService.deleteUsuarios(user);
+    const index = this.users.indexOf(user);
+    if( index > -1 ){
+      this.users.splice(index, 1);
+    }
+  }
+
+  public async saveUSer() {
+
+    if( this.userSelected.id ) {
+      const user = await userService.updateUsuarios( this.userSelected );
+      const index:number = this.users.indexOf(this.userSelected);
+      if( index > -1 ){
+        this.users[index] = user;
+      }
+
+      this.dialog = false;
+
+    } else {
+      this.userSelected.password = 'ADCDEFG';
+      const user: UserInterface = await userService.createUsuarios( this.userSelected );
+      this.users.push(user);
+      this.dialog = false;
+    }
+  }
+
+  public clearUser() {
+    this.userSelected = {
+      id: 0,
+      name: '',
+      lastnameFather: '',
+      lastnameMother: '',
+      email: '',
+      password: ''
+    }
+  }
+
+  public closeModal() {
+    this.dialog = false;
+    this.clearUser();
   }
 
 };
